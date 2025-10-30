@@ -3,8 +3,8 @@ FROM apache/superset:latest
 
 COPY superset_config.py /app/pythonpath/superset_config.py
 
-# Install Postgres driver needed at runtime
-RUN pip install --no-cache-dir psycopg2-binary
+# Install Postgres driver inside Superset virtualenv
+RUN /app/.venv/bin/pip install --no-cache-dir psycopg2-binary
 
 ENV SUPERSET_HOME=/app/superset_home
 
