@@ -1,0 +1,27 @@
+# Apache Superset lightweight image for Render (Hybrid Auth + AnalystLite Role)
+FROM apache/superset:latest
+
+COPY superset_config.py /app/pythonpath/superset_config.py
+
+ENV SUPERSET_HOME=/app/superset_home
+
+EXPOSE 8088
+
+# Initialize metadata DB, create custom role, and user, then start Superset
+CMD bash -c "
+superset db upgrade &&
+superset init &&
+
+# Create AnalystLite role (Gamma + query save perms)
+superset fab create-role --name AnalystLite || true &&
+superset fab grant-role-perm --role AnalystLite --permission 'can dashboard' --view-menu Superset || true &&
+superset fab grant-role-perm --role AnalystLite --permission 'can explore' --view-menu Superset || true &&
+superset fab grant-role-perm --role AnalystLite --permission 'can explore json' --view-menu Superset || true &&
+superset fab grant-role-perm --role AnalystLite --permission 'can sql_json' --view-menu Superset || true &&
+superset fab grant-role-perm --role AnalystLite --permission 'can save query' --view-menu Superset || true &&
+
+# Create dashuser with AnalystLite role
+superset fab create-user     --username dashuser     --firstname Dash     --lastname User     --email dashuser@example.com     --password dashuser     --role AnalystLite || true &&
+
+gunicorn -w 2 -b 0.0.0.0:8088 'superset.app:create_app()'
+"

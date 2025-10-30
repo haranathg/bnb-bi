@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: superset
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: SUPERSET_SECRET_KEY
+        sync: false
+      - key: SUPERSET_DATABASE_URI
+        sync: false
+      - key: SUPERSET_JWT_SECRET
+        sync: false
+      - key: PYTHONPATH
+        value: /app/pythonpath
+      - key: SUPERSET_PORT
+        value: "8088"
+    healthCheckPath: /health
