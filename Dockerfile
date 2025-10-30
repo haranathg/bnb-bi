@@ -5,7 +5,7 @@ COPY superset_config.py /app/pythonpath/superset_config.py
 
 # Install Postgres driver globally (requires root)
 USER root
-RUN python3 -m pip install --no-cache-dir psycopg2-binary
+RUN pip install --no-cache-dir psycopg2-binary
 USER superset
 
 ENV SUPERSET_HOME=/app/superset_home
