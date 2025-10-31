@@ -1,22 +1,64 @@
+# -------------------------------------------------------------------
+# Apache Superset on Render (stable, Render-friendly build)
+# -------------------------------------------------------------------
+
+# Use the official prebuilt Superset image with all frontend assets
 FROM apache/superset:latest
 
-# Switch to root to install system packages
+# Switch to root to install system libraries if needed
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential gcc g++ libpq-dev python3-dev \
-    && rm -rf /var/lib/apt/lists/*
+    libpq-dev \
+ && rm -rf /var/lib/apt/lists/*
 
-# Switch back to Superset runtime user
+# Switch back to non-root runtime user
 USER superset
 
-# Copy config and requirements
-COPY superset_config.py /app/pythonpath/superset_config.py
+# -------------------------------------------------------------------
+# Core Fix: install Postgres driver *inside* Superset’s own venv
+# -------------------------------------------------------------------
+RUN . /app/.venv/bin/activate && pip install --no-cache-dir psycopg2-binary
+
+# -------------------------------------------------------------------
+# Optional extra dependencies (your requirements.txt)
+# -------------------------------------------------------------------
 COPY requirements.txt /app/requirements.txt
+RUN if [ -s /app/requirements.txt ]; then \
+      . /app/.venv/bin/activate && \
+      pip install --no-cache-dir -r /app/requirements.txt; \
+    fi
 
-# Install Python deps (will run as superset user)
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# -------------------------------------------------------------------
+# Superset configuration
+# -------------------------------------------------------------------
+COPY superset_config.py /app/pythonpath/superset_config.py
+ENV PYTHONPATH="/app/pythonpath"
 
-ENV SUPERSET_HOME=/app/superset_home
+# -------------------------------------------------------------------
+# Bootstrap script to initialize DB and create admin user on startup
+# -------------------------------------------------------------------
+RUN printf '%s\n' \
+'#!/usr/bin/env bash' \
+'set -euo pipefail' \
+'echo "[entrypoint] Applying DB migrations..."' \
+'superset db upgrade' \
+'' \
+'if [ -n "${SUPERSET_ADMIN_USERNAME:-}" ] && [ -n "${SUPERSET_ADMIN_PASSWORD:-}" ]; then' \
+'  echo "[entrypoint] Ensuring admin user exists..."' \
+'  superset fab create-admin \\' \
+'    --username "$SUPERSET_ADMIN_USERNAME" \\' \
+'    --firstname "${SUPERSET_ADMIN_FIRSTNAME:-Admin}" \\' \
+'    --lastname "${SUPERSET_ADMIN_LASTNAME:-User}" \\' \
+'    --email "${SUPERSET_ADMIN_EMAIL:-admin@example.com}" \\' \
+'    --password "$SUPERSET_ADMIN_PASSWORD" || true' \
+'fi' \
+'' \
+'echo "[entrypoint] Running superset init..."' \
+'superset init' \
+'' \
+'echo "[entrypoint] Starting Superset on 0.0.0.0:${PORT:-8088}..."' \
+'exec superset run -h 0.0.0.0 -p "${PORT:-8088}"' \
+> /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
 EXPOSE 8088
-
-CMD ["bash", "-c", "superset db upgrade && superset init && superset fab create-role --name AnalystLite || true && superset fab grant-role-perm --role AnalystLite --permission 'can dashboard' --view-menu Superset || true && superset fab grant-role-perm --role AnalystLite --permission 'can explore' --view-menu Superset || true && superset fab grant-role-perm --role AnalystLite --permission 'can explore json' --view-menu Superset || true && superset fab grant-role-perm --role AnalystLite --permission 'can sql_json' --view-menu Superset || true && superset fab grant-role-perm --role AnalystLite --permission 'can save query' --view-menu Superset || true && superset fab create-user --username dashuser --firstname Dash --lastname User --email dashuser@example.com --password dashuser --role AnalystLite || true && gunicorn -w 2 -b 0.0.0.0:8088 'superset.app:create_app()'"]
+CMD ["/app/entrypoint.sh"]
