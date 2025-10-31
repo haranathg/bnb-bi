@@ -1,27 +1,13 @@
 # -------------------------------------------------------------------
-# Apache Superset on Render (Minimal & Stable)
+# Superset configuration
 # -------------------------------------------------------------------
-
-# Use the prebuilt Superset image (already includes all deps)
-FROM apache/superset:latest
-
-# Switch to root to install Postgres client libs
-USER root
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev \
- && rm -rf /var/lib/apt/lists/*
-
-# Back to non-root runtime user
-USER superset
-
-# Install psycopg2-binary into Superset's virtualenv (for Postgres connection)
-RUN . /app/.venv/bin/activate && pip install --no-cache-dir psycopg2-binary
-
-# Copy your Superset config file
 COPY superset_config.py /app/pythonpath/superset_config.py
 ENV PYTHONPATH="/app/pythonpath"
 
+# -------------------------------------------------------------------
 # Entry script for first-time init and run
+# -------------------------------------------------------------------
+USER root
 RUN printf '%s\n' \
 '#!/usr/bin/env bash' \
 'set -euo pipefail' \
@@ -44,6 +30,9 @@ RUN printf '%s\n' \
 'echo "[entrypoint] Starting Superset on 0.0.0.0:${PORT:-8088}..."' \
 'exec superset run -h 0.0.0.0 -p "${PORT:-8088}"' \
 > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
+# Switch back to the non-root user for runtime safety
+USER superset
 
 EXPOSE 8088
 CMD ["/app/entrypoint.sh"]
