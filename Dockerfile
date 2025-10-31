@@ -1,17 +1,15 @@
 # -------------------------------------------------------------------
 # Apache Superset on Render (Minimal & Stable)
 # -------------------------------------------------------------------
-
 FROM apache/superset:latest
 
-# Install Postgres client libraries
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# Install psycopg2-binary into Superset's venv
-RUN . /app/.venv/bin/activate && pip install --no-cache-dir psycopg2-binary
+# ✅ Install psycopg2-binary *inside* Superset's venv
+RUN /app/.venv/bin/pip install --no-cache-dir psycopg2-binary
 
 # Superset configuration
 COPY superset_config.py /app/pythonpath/superset_config.py
