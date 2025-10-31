@@ -2,31 +2,28 @@ services:
   - type: web
     name: superset
     env: docker
-    plan: free                # works, but "Starter" (1 GB) is safer
-    dockerfilePath: ./Dockerfile
+    plan: free
+    # 👇 pull prebuilt image instead of building one
+    image:
+      url: docker.io/amancevice/superset:3.1.0
+
     autoDeploy: true
+    healthCheckPath: /health
 
     envVars:
-      # Core secrets
+      # --- Required ---
       - key: SUPERSET_SECRET_KEY
         sync: false
       - key: SUPERSET_DATABASE_URI
         sync: false
-      - key: SUPERSET_JWT_SECRET
-        sync: false
+      # Render automatically sets $PORT, but keep it explicit
+      - key: PORT
+        value: "8088"
 
-      # Admin bootstrap (optional; used once at first start)
+      # --- Optional bootstrap admin ---
       - key: SUPERSET_ADMIN_USERNAME
-        sync: false
+        value: admin
       - key: SUPERSET_ADMIN_PASSWORD
-        sync: false
+        value: admin
       - key: SUPERSET_ADMIN_EMAIL
         value: admin@example.com
-
-      # Internal config
-      - key: PYTHONPATH
-        value: /app/pythonpath
-      - key: PORT              # Render injects $PORT automatically
-        value: "8088"          # keep for clarity; Superset binds to this
-
-    healthCheckPath: /health
