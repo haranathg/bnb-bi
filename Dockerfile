@@ -1,42 +1,27 @@
 # -------------------------------------------------------------------
-# Apache Superset on Render (stable, Render-friendly build)
+# Apache Superset on Render (Minimal & Stable)
 # -------------------------------------------------------------------
 
-# Use the official prebuilt Superset image with all frontend assets
+# Use the prebuilt Superset image (already includes all deps)
 FROM apache/superset:latest
 
-# Switch to root to install system libraries if needed
+# Switch to root to install Postgres client libs
 USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# Switch back to non-root runtime user
+# Back to non-root runtime user
 USER superset
 
-# -------------------------------------------------------------------
-# Core Fix: install Postgres driver *inside* Superset’s own venv
-# -------------------------------------------------------------------
+# Install psycopg2-binary into Superset's virtualenv (for Postgres connection)
 RUN . /app/.venv/bin/activate && pip install --no-cache-dir psycopg2-binary
 
-# -------------------------------------------------------------------
-# Optional extra dependencies (your requirements.txt)
-# -------------------------------------------------------------------
-COPY requirements.txt /app/requirements.txt
-RUN if [ -s /app/requirements.txt ]; then \
-      . /app/.venv/bin/activate && \
-      pip install --no-cache-dir -r /app/requirements.txt; \
-    fi
-
-# -------------------------------------------------------------------
-# Superset configuration
-# -------------------------------------------------------------------
+# Copy your Superset config file
 COPY superset_config.py /app/pythonpath/superset_config.py
 ENV PYTHONPATH="/app/pythonpath"
 
-# -------------------------------------------------------------------
-# Bootstrap script to initialize DB and create admin user on startup
-# -------------------------------------------------------------------
+# Entry script for first-time init and run
 RUN printf '%s\n' \
 '#!/usr/bin/env bash' \
 'set -euo pipefail' \

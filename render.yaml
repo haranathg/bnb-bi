@@ -2,17 +2,31 @@ services:
   - type: web
     name: superset
     env: docker
-    plan: free
+    plan: free                # works, but "Starter" (1 GB) is safer
     dockerfilePath: ./Dockerfile
+    autoDeploy: true
+
     envVars:
+      # Core secrets
       - key: SUPERSET_SECRET_KEY
         sync: false
       - key: SUPERSET_DATABASE_URI
         sync: false
       - key: SUPERSET_JWT_SECRET
         sync: false
+
+      # Admin bootstrap (optional; used once at first start)
+      - key: SUPERSET_ADMIN_USERNAME
+        sync: false
+      - key: SUPERSET_ADMIN_PASSWORD
+        sync: false
+      - key: SUPERSET_ADMIN_EMAIL
+        value: admin@example.com
+
+      # Internal config
       - key: PYTHONPATH
         value: /app/pythonpath
-      - key: SUPERSET_PORT
-        value: "8088"
+      - key: PORT              # Render injects $PORT automatically
+        value: "8088"          # keep for clarity; Superset binds to this
+
     healthCheckPath: /health
