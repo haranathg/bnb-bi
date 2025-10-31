@@ -1,13 +1,23 @@
 # -------------------------------------------------------------------
-# Superset configuration
+# Apache Superset on Render (Minimal & Stable)
 # -------------------------------------------------------------------
+
+FROM apache/superset:latest
+
+# Install Postgres client libraries
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install psycopg2-binary into Superset's venv
+RUN . /app/.venv/bin/activate && pip install --no-cache-dir psycopg2-binary
+
+# Superset configuration
 COPY superset_config.py /app/pythonpath/superset_config.py
 ENV PYTHONPATH="/app/pythonpath"
 
-# -------------------------------------------------------------------
-# Entry script for first-time init and run
-# -------------------------------------------------------------------
-USER root
+# Create entrypoint as root (has write access)
 RUN printf '%s\n' \
 '#!/usr/bin/env bash' \
 'set -euo pipefail' \
@@ -31,7 +41,7 @@ RUN printf '%s\n' \
 'exec superset run -h 0.0.0.0 -p "${PORT:-8088}"' \
 > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
-# Switch back to the non-root user for runtime safety
+# Switch back to non-root runtime user
 USER superset
 
 EXPOSE 8088
