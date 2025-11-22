@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: superset
+    env: docker
+    plan: free
+    # 👇 pull prebuilt image instead of building one
+    image:
+      url: docker.io/amancevice/superset:3.1.0
+
+    autoDeploy: true
+    healthCheckPath: /health
+
+    envVars:
+      # --- Required ---
+      - key: SUPERSET_SECRET_KEY
+        sync: false
+      - key: SUPERSET_DATABASE_URI
+        sync: false
+      # Render automatically sets $PORT, but keep it explicit
+      - key: PORT
+        value: "8088"
+
+      # --- Optional bootstrap admin ---
+      - key: SUPERSET_ADMIN_USERNAME
+        value: admin
+      - key: SUPERSET_ADMIN_PASSWORD
+        value: admin
+      - key: SUPERSET_ADMIN_EMAIL
+        value: admin@example.com

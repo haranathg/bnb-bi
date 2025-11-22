@@ -1,0 +1,65 @@
+Need to recreate the entire script:  follow these instructions strictly:remember the main source is only  cms_drug_pricing tableStep 1 - create an intermin temp consolidated table: a) get the following direct cols from the the source table 
+HCPCS_Code
+LABELER_NAME # rename as - manufacturer
+NDC2
+Drug_Name
+BILLUNITSPKG
+HCPCS_Code_Dosage
+Payment_Limit
+APC Payment Limit
+Current_WAC_Package_Price
+Current_WAC_Effect_Date
+Current_AWP_Package_Price
+Current_AWP_Effect_Date
+J_Code_Desc
+month_name
+year_name
+month_year
+ASP_Override
+WAC_per_unit = Current_WAC_Package_Price / BILLUNITSPKG -- if value is an error then leave it as ""
+AWP_per_unit - Current_AWP_Package_Price / BILLUNITSPKG -- if value is an error then leave it as ""
+ASP = if there is a numeric value in asp over ride then it is that value, if not then it is equal to Payment_Limit/1.06
+
+If any of the calc's give an error - leave the value as NA
+
+From this interim table we need to create the 2 main BI tables
+
+a) bi_hcpcs_drug_pricing and b)bi_historical_pricing
+
+for the bi_hcpcs_drug_pricing select the following cols
+HCPCS_Code
+Manufacturer
+Drug_Name
+BILLUNITSPKG
+HCPCS_Code_Dosage
+Payment_Limit
+APC Payment Limit
+Current_WAC_Package_Price
+Current_WAC_Effect_Date
+Current_AWP_Package_Price
+Current_AWP_Effect_Date
+J_Code_Desc
+month_name
+year_name
+month_year
+ASP_Override
+ASP_current_quarter
+ASP_prev_quarter = value from the prev qtr --- user the standard calendar qtrs for q1/q2/q3/q4
+ASP Quarterly Change % -- calc this value
+Median_WAC = median of (WAC per unit) - exclude all the non numeric rows
+Median_AWP = median of (AWP per unit) - exclude all the non numeric rows
+WAC/AWP_ratio -- calculate this
+ASP/WAC_ratio -- calc this
+ASP/AWP_ratio -- calc this 
+Updated_date -- update this only if any of the values from the interim temp table are diff from what is in this table 
+and only include the distinct rows for each hcpcs-month_year combination only for the current month and year ie for this month use month_name=11 and year_name=2025
+
+
+b) for the bi_historical_pricing table we only need the following data elements:
+HCPCS_Code
+Quarter -- have values Q12025, Q22025 etc -- needs to be calculated
+ASP -- pick the value as in the first month of that qtr
+Median_AWP -- pick the value from the first month of that qtr
+Median_WAC -- pick the value from the first month of that qtr
+Updated_date -- update this only if any of the values from the interim temp table are diff from what is in this table 
+Also the rows here need to be distinct for the hcpcs_code and qtr combination
