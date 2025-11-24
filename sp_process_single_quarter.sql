@@ -316,6 +316,25 @@ BEGIN
         ON bd.HCPCS_Code = qd.HCPCS_Code
         AND bd.month_year = qd.month_year;
 
+    -- =====================================================
+    -- CLEANUP: Delete old data to keep only latest quarter
+    -- bi_hcpcs_drug_pricing should ONLY have the most recent quarter
+    -- =====================================================
+
+    -- Find the maximum quarter date being processed
+    SET @max_quarter_date = (
+        SELECT MAX(STR_TO_DATE(CONCAT('01-', REPLACE(REPLACE(month_year, '.', '-'), 'Feburary', 'February')), '%d-%M-%Y'))
+        FROM bi_hcpcs_drug_pricing
+    );
+
+    -- Delete all data that's NOT from the most recent quarter
+    -- Keep only data from the same quarter as the max date
+    DELETE FROM bi_hcpcs_drug_pricing
+    WHERE CONCAT('Q',
+                 QUARTER(STR_TO_DATE(CONCAT('01-', REPLACE(REPLACE(month_year, '.', '-'), 'Feburary', 'February')), '%d-%M-%Y')),
+                 YEAR(STR_TO_DATE(CONCAT('01-', REPLACE(REPLACE(month_year, '.', '-'), 'Feburary', 'February')), '%d-%M-%Y'))
+          ) != CONCAT('Q', QUARTER(@max_quarter_date), YEAR(@max_quarter_date));
+
     -- UPSERT into bi_hcpcs_drug_pricing
     INSERT INTO bi_hcpcs_drug_pricing (
         HCPCS_Code, Manufacturer, Drug_Name, BILLUNITSPKG, HCPCS_Code_Dosage,
