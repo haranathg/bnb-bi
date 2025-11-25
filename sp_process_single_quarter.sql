@@ -132,9 +132,7 @@ BEGIN
         BILLUNITSPKG DECIMAL(18,4),
         HCPCS_Code_Dosage VARCHAR(100),
         Payment_Limit DECIMAL(18,4),
-        Current_WAC_Package_Price DECIMAL(18,4),
         Current_WAC_Effect_Date DATE,
-        Current_AWP_Package_Price DECIMAL(18,4),
         Current_AWP_Effect_Date DATE,
         J_Code_Desc VARCHAR(500),
         month_name VARCHAR(20),
@@ -146,7 +144,6 @@ BEGIN
         ASP_Quarterly_Change_Pct DECIMAL(10,4),
         Median_WAC DECIMAL(18,4),
         Median_AWP DECIMAL(18,4),
-        WAC_by_AWP_ratio DECIMAL(10,4),
         ASP_by_WAC_ratio DECIMAL(10,4),
         ASP_by_AWP_ratio DECIMAL(10,4),
         Updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -248,9 +245,7 @@ BEGIN
         bd.BILLUNITSPKG,
         bd.HCPCS_Code_Dosage,
         bd.Payment_Limit,
-        bd.Current_WAC_Package_Price,
         bd.Current_WAC_Effect_Date,
-        bd.Current_AWP_Package_Price,
         bd.Current_AWP_Effect_Date,
         bd.J_Code_Desc,
         bd.month_name,
@@ -268,12 +263,6 @@ BEGIN
         END AS ASP_Quarterly_Change_Pct,
         mc.Median_WAC,
         mc.Median_AWP,
-        CASE
-            WHEN mc.Median_AWP IS NOT NULL AND mc.Median_AWP != 0
-                 AND mc.Median_WAC IS NOT NULL
-            THEN mc.Median_WAC / mc.Median_AWP
-            ELSE NULL
-        END AS WAC_by_AWP_ratio,
         CASE
             WHEN mc.Median_WAC IS NOT NULL AND mc.Median_WAC != 0
                  AND bd.ASP IS NOT NULL
@@ -294,9 +283,7 @@ BEGIN
             s.BILLUNITSPKG,
             s.HCPCS_Code_Dosage,
             s.Payment_Limit,
-            s.Current_WAC_Package_Price,
             s.Current_WAC_Effect_Date,
-            s.Current_AWP_Package_Price,
             s.Current_AWP_Effect_Date,
             s.J_Code_Desc,
             s.month_name,
@@ -338,20 +325,18 @@ BEGIN
     -- UPSERT into bi_hcpcs_drug_pricing
     INSERT INTO bi_hcpcs_drug_pricing (
         HCPCS_Code, Manufacturer, Drug_Name, BILLUNITSPKG, HCPCS_Code_Dosage,
-        Payment_Limit, Current_WAC_Package_Price,
-        Current_WAC_Effect_Date, Current_AWP_Package_Price, Current_AWP_Effect_Date,
+        Payment_Limit, Current_WAC_Effect_Date, Current_AWP_Effect_Date,
         J_Code_Desc, month_name, year_name, month_year, ASP_Override,
         ASP_current_quarter, ASP_prev_quarter, ASP_Quarterly_Change_Pct,
-        Median_WAC, Median_AWP, WAC_by_AWP_ratio, ASP_by_WAC_ratio, ASP_by_AWP_ratio,
+        Median_WAC, Median_AWP, ASP_by_WAC_ratio, ASP_by_AWP_ratio,
         Updated_date
     )
     SELECT
         HCPCS_Code, Manufacturer, Drug_Name, BILLUNITSPKG, HCPCS_Code_Dosage,
-        Payment_Limit, Current_WAC_Package_Price,
-        Current_WAC_Effect_Date, Current_AWP_Package_Price, Current_AWP_Effect_Date,
+        Payment_Limit, Current_WAC_Effect_Date, Current_AWP_Effect_Date,
         J_Code_Desc, month_name, year_name, month_year, ASP_Override,
         ASP_current_quarter, ASP_prev_quarter, ASP_Quarterly_Change_Pct,
-        Median_WAC, Median_AWP, WAC_by_AWP_ratio, ASP_by_WAC_ratio, ASP_by_AWP_ratio,
+        Median_WAC, Median_AWP, ASP_by_WAC_ratio, ASP_by_AWP_ratio,
         CURRENT_TIMESTAMP
     FROM temp_pricing_upsert
     ON DUPLICATE KEY UPDATE
@@ -360,9 +345,7 @@ BEGIN
         BILLUNITSPKG = VALUES(BILLUNITSPKG),
         HCPCS_Code_Dosage = VALUES(HCPCS_Code_Dosage),
         Payment_Limit = VALUES(Payment_Limit),
-        Current_WAC_Package_Price = VALUES(Current_WAC_Package_Price),
         Current_WAC_Effect_Date = VALUES(Current_WAC_Effect_Date),
-        Current_AWP_Package_Price = VALUES(Current_AWP_Package_Price),
         Current_AWP_Effect_Date = VALUES(Current_AWP_Effect_Date),
         J_Code_Desc = VALUES(J_Code_Desc),
         month_name = VALUES(month_name),
@@ -373,7 +356,6 @@ BEGIN
         ASP_Quarterly_Change_Pct = VALUES(ASP_Quarterly_Change_Pct),
         Median_WAC = VALUES(Median_WAC),
         Median_AWP = VALUES(Median_AWP),
-        WAC_by_AWP_ratio = VALUES(WAC_by_AWP_ratio),
         ASP_by_WAC_ratio = VALUES(ASP_by_WAC_ratio),
         ASP_by_AWP_ratio = VALUES(ASP_by_AWP_ratio),
         Updated_date = CURRENT_TIMESTAMP;

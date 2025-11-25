@@ -3,11 +3,12 @@
 -- Remove bad data and rebuild with latest quarter
 -- =====================================================
 
--- Step 1: Truncate the table to start fresh
-TRUNCATE TABLE bi_hcpcs_drug_pricing;
+-- Step 1: Drop and recreate the table with updated schema
+-- (Removes: Current_WAC_Package_Price, Current_AWP_Package_Price, WAC_by_AWP_ratio)
+DROP TABLE IF EXISTS bi_hcpcs_drug_pricing;
 
--- Step 2: Check it's empty
-SELECT 'After Truncate' AS status, COUNT(*) AS row_count FROM bi_hcpcs_drug_pricing;
+-- Step 2: Verify table was dropped (will show error - that's OK)
+-- SELECT 'After Drop' AS status, COUNT(*) AS row_count FROM bi_hcpcs_drug_pricing;
 
 -- Step 3: Now run the main procedure to rebuild everything
 -- This will process all quarters and keep only the latest (Q4 2024)
