@@ -20,6 +20,6 @@ CREATE TABLE IF NOT EXISTS bi_refresh_log (
 
 -- create the crontab - 
 crontab -e
-0 2 * * * /home/buyandbi/utils/refresh_bi.sh >> /home/buyandbi/utils/bi_refresh.log 2>&1
+0 2 * * * /home/buyandbill/utils/refresh_bi.sh >> /home/buyandbill/utils/bi_refresh.log 2>&1
 
 
