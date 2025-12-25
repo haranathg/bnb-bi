@@ -217,6 +217,8 @@ BEGIN
     GROUP BY t1.HCPCS_Code, t1.month_year;
 
     -- Create quarter data with LAG for previous quarter (TARGET DATE ONLY)
+    -- NOTE: We look up ASP_prev_quarter from bi_historical_pricing since
+    -- bi_hcpcs_drug_pricing only keeps the latest quarter's data
     CREATE TEMPORARY TABLE temp_quarter_data AS
     SELECT
         s.HCPCS_Code,
@@ -224,11 +226,12 @@ BEGIN
         s.Quarter,
         s.ASP,
         (
-            SELECT prev.ASP_current_quarter
-            FROM bi_hcpcs_drug_pricing prev
+            SELECT CAST(prev.ASP AS DECIMAL(18,4))
+            FROM bi_historical_pricing prev
             WHERE prev.HCPCS_Code = s.HCPCS_Code
-                AND prev.month_year < s.month_year
-            ORDER BY prev.month_year DESC
+                AND prev.Quarter < s.Quarter
+                AND prev.ASP != 'NA'
+            ORDER BY prev.Quarter DESC
             LIMIT 1
         ) AS ASP_prev_quarter,
         s.period_date
