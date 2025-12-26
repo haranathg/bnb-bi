@@ -129,6 +129,7 @@ BEGIN
         HCPCS_Code VARCHAR(100) NOT NULL,
         Manufacturer VARCHAR(255),
         Drug_Name VARCHAR(500),
+        hcpcs_drug VARCHAR(620),
         BILLUNITSPKG DECIMAL(18,4),
         HCPCS_Code_Dosage VARCHAR(100),
         Payment_Limit DECIMAL(18,4),
@@ -150,7 +151,9 @@ BEGIN
         PRIMARY KEY (HCPCS_Code, month_year),
         INDEX idx_hcpcs (HCPCS_Code),
         INDEX idx_month_year (month_year),
-        INDEX idx_manufacturer (Manufacturer)
+        INDEX idx_manufacturer (Manufacturer),
+        INDEX idx_hcpcs_drug (hcpcs_drug),
+        FULLTEXT INDEX idx_hcpcs_drug_ft (hcpcs_drug)
     );
 
     DROP TEMPORARY TABLE IF EXISTS temp_distinct_hcpcs_month;
@@ -248,6 +251,7 @@ BEGIN
         bd.HCPCS_Code,
         bd.Manufacturer,
         bd.Drug_Name,
+        CONCAT(bd.Drug_Name, ' (', bd.HCPCS_Code, ')') AS hcpcs_drug,
         bd.BILLUNITSPKG,
         bd.HCPCS_Code_Dosage,
         bd.Payment_Limit,
@@ -330,7 +334,7 @@ BEGIN
 
     -- UPSERT into bi_hcpcs_drug_pricing
     INSERT INTO bi_hcpcs_drug_pricing (
-        HCPCS_Code, Manufacturer, Drug_Name, BILLUNITSPKG, HCPCS_Code_Dosage,
+        HCPCS_Code, Manufacturer, Drug_Name, hcpcs_drug, BILLUNITSPKG, HCPCS_Code_Dosage,
         Payment_Limit, Current_WAC_Effect_Date, Current_AWP_Effect_Date,
         J_Code_Desc, month_name, year_name, month_year, ASP_Override,
         ASP_current_quarter, ASP_prev_quarter, ASP_Quarterly_Change_Pct,
@@ -338,7 +342,7 @@ BEGIN
         Updated_date
     )
     SELECT
-        HCPCS_Code, Manufacturer, Drug_Name, BILLUNITSPKG, HCPCS_Code_Dosage,
+        HCPCS_Code, Manufacturer, Drug_Name, hcpcs_drug, BILLUNITSPKG, HCPCS_Code_Dosage,
         Payment_Limit, Current_WAC_Effect_Date, Current_AWP_Effect_Date,
         J_Code_Desc, month_name, year_name, month_year, ASP_Override,
         ASP_current_quarter, ASP_prev_quarter, ASP_Quarterly_Change_Pct,
@@ -348,6 +352,7 @@ BEGIN
     ON DUPLICATE KEY UPDATE
         Manufacturer = VALUES(Manufacturer),
         Drug_Name = VALUES(Drug_Name),
+        hcpcs_drug = VALUES(hcpcs_drug),
         BILLUNITSPKG = VALUES(BILLUNITSPKG),
         HCPCS_Code_Dosage = VALUES(HCPCS_Code_Dosage),
         Payment_Limit = VALUES(Payment_Limit),
