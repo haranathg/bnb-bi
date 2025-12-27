@@ -380,13 +380,15 @@ BEGIN
     CREATE TABLE IF NOT EXISTS bi_historical_pricing (
         HCPCS_Code VARCHAR(100) NOT NULL,
         Quarter VARCHAR(10) NOT NULL,
+        Manufacturer VARCHAR(255),
         ASP VARCHAR(20),
         Median_WAC VARCHAR(20),
         Median_AWP VARCHAR(20),
         Updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (HCPCS_Code, Quarter),
         INDEX idx_hist_hcpcs (HCPCS_Code),
-        INDEX idx_hist_quarter (Quarter)
+        INDEX idx_hist_quarter (Quarter),
+        INDEX idx_hist_manufacturer (Manufacturer)
     );
 
     DROP TEMPORARY TABLE IF EXISTS temp_hist_distinct_hcpcs_qtr;
@@ -421,6 +423,7 @@ BEGIN
     SELECT
         s.HCPCS_Code,
         s.Quarter,
+        s.Manufacturer,
         s.ASP,
         s.period_date,
         s.month_year,
@@ -490,6 +493,7 @@ BEGIN
     SELECT
         fm.HCPCS_Code,
         fm.Quarter,
+        fm.Manufacturer,
         COALESCE(CAST(ROUND(AVG(fm.ASP), 2) AS CHAR(20)), 'NA') AS ASP,
         COALESCE(CAST(ROUND(mc.Median_WAC, 2) AS CHAR(20)), 'NA') AS Median_WAC,
         COALESCE(CAST(ROUND(mc.Median_AWP, 2) AS CHAR(20)), 'NA') AS Median_AWP
@@ -497,16 +501,17 @@ BEGIN
     LEFT JOIN temp_hist_median_calcs mc
         ON fm.HCPCS_Code = mc.HCPCS_Code
         AND fm.Quarter = mc.Quarter
-    GROUP BY fm.HCPCS_Code, fm.Quarter, mc.Median_WAC, mc.Median_AWP;
+    GROUP BY fm.HCPCS_Code, fm.Quarter, fm.Manufacturer, mc.Median_WAC, mc.Median_AWP;
 
     -- UPSERT into bi_historical_pricing
     INSERT INTO bi_historical_pricing (
-        HCPCS_Code, Quarter, ASP, Median_WAC, Median_AWP, Updated_date
+        HCPCS_Code, Quarter, Manufacturer, ASP, Median_WAC, Median_AWP, Updated_date
     )
     SELECT
-        HCPCS_Code, Quarter, ASP, Median_WAC, Median_AWP, CURRENT_TIMESTAMP
+        HCPCS_Code, Quarter, Manufacturer, ASP, Median_WAC, Median_AWP, CURRENT_TIMESTAMP
     FROM temp_historical_upsert
     ON DUPLICATE KEY UPDATE
+        Manufacturer = VALUES(Manufacturer),
         ASP = VALUES(ASP),
         Median_WAC = VALUES(Median_WAC),
         Median_AWP = VALUES(Median_AWP),
