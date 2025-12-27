@@ -381,6 +381,7 @@ BEGIN
         HCPCS_Code VARCHAR(100) NOT NULL,
         Quarter VARCHAR(10) NOT NULL,
         Manufacturer VARCHAR(255),
+        hcpcs_drug VARCHAR(620),
         ASP VARCHAR(20),
         Median_WAC VARCHAR(20),
         Median_AWP VARCHAR(20),
@@ -388,7 +389,9 @@ BEGIN
         PRIMARY KEY (HCPCS_Code, Quarter),
         INDEX idx_hist_hcpcs (HCPCS_Code),
         INDEX idx_hist_quarter (Quarter),
-        INDEX idx_hist_manufacturer (Manufacturer)
+        INDEX idx_hist_manufacturer (Manufacturer),
+        INDEX idx_hist_hcpcs_drug (hcpcs_drug),
+        FULLTEXT INDEX idx_hist_hcpcs_drug_ft (hcpcs_drug)
     );
 
     DROP TEMPORARY TABLE IF EXISTS temp_hist_distinct_hcpcs_qtr;
@@ -424,6 +427,7 @@ BEGIN
         s.HCPCS_Code,
         s.Quarter,
         s.Manufacturer,
+        CONCAT(s.Drug_Name, ' (', s.HCPCS_Code, ')') AS hcpcs_drug,
         s.ASP,
         s.period_date,
         s.month_year,
@@ -494,6 +498,7 @@ BEGIN
         fm.HCPCS_Code,
         fm.Quarter,
         fm.Manufacturer,
+        fm.hcpcs_drug,
         COALESCE(CAST(ROUND(AVG(fm.ASP), 2) AS CHAR(20)), 'NA') AS ASP,
         COALESCE(CAST(ROUND(mc.Median_WAC, 2) AS CHAR(20)), 'NA') AS Median_WAC,
         COALESCE(CAST(ROUND(mc.Median_AWP, 2) AS CHAR(20)), 'NA') AS Median_AWP
@@ -501,17 +506,18 @@ BEGIN
     LEFT JOIN temp_hist_median_calcs mc
         ON fm.HCPCS_Code = mc.HCPCS_Code
         AND fm.Quarter = mc.Quarter
-    GROUP BY fm.HCPCS_Code, fm.Quarter, fm.Manufacturer, mc.Median_WAC, mc.Median_AWP;
+    GROUP BY fm.HCPCS_Code, fm.Quarter, fm.Manufacturer, fm.hcpcs_drug, mc.Median_WAC, mc.Median_AWP;
 
     -- UPSERT into bi_historical_pricing
     INSERT INTO bi_historical_pricing (
-        HCPCS_Code, Quarter, Manufacturer, ASP, Median_WAC, Median_AWP, Updated_date
+        HCPCS_Code, Quarter, Manufacturer, hcpcs_drug, ASP, Median_WAC, Median_AWP, Updated_date
     )
     SELECT
-        HCPCS_Code, Quarter, Manufacturer, ASP, Median_WAC, Median_AWP, CURRENT_TIMESTAMP
+        HCPCS_Code, Quarter, Manufacturer, hcpcs_drug, ASP, Median_WAC, Median_AWP, CURRENT_TIMESTAMP
     FROM temp_historical_upsert
     ON DUPLICATE KEY UPDATE
         Manufacturer = VALUES(Manufacturer),
+        hcpcs_drug = VALUES(hcpcs_drug),
         ASP = VALUES(ASP),
         Median_WAC = VALUES(Median_WAC),
         Median_AWP = VALUES(Median_AWP),

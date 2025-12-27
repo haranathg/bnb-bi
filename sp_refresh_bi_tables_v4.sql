@@ -14,6 +14,7 @@ BEGIN
     DECLARE v_min_date DATE;
     DECLARE v_max_date DATE;
     DECLARE v_quarter_count INT DEFAULT 0;
+    DECLARE v_total_quarters INT DEFAULT 0;
     DECLARE v_total_pricing_rows INT DEFAULT 0;
     DECLARE v_total_historical_rows INT DEFAULT 0;
     DECLARE v_error_message TEXT;
@@ -54,7 +55,7 @@ BEGIN
 
     SET v_start_time = NOW();
 
-    -- Get min/max dates
+    -- Get min/max dates and total quarter count
     SELECT
         MIN(STR_TO_DATE(CONCAT('01-', REPLACE(REPLACE(month_year, '.', '-'), 'Feburary', 'February')), '%d-%M-%Y')),
         MAX(STR_TO_DATE(CONCAT('01-', REPLACE(REPLACE(month_year, '.', '-'), 'Feburary', 'February')), '%d-%M-%Y'))
@@ -66,11 +67,25 @@ BEGIN
         AND month_year LIKE '%.%'
         AND LENGTH(month_year) >= 8;
 
+    -- Count total distinct quarters
+    SELECT COUNT(DISTINCT CONCAT(
+        'Q',
+        QUARTER(STR_TO_DATE(CONCAT('01-', REPLACE(REPLACE(month_year, '.', '-'), 'Feburary', 'February')), '%d-%M-%Y')),
+        YEAR(STR_TO_DATE(CONCAT('01-', REPLACE(REPLACE(month_year, '.', '-'), 'Feburary', 'February')), '%d-%M-%Y'))
+    ))
+    INTO v_total_quarters
+    FROM cms_drug_pricing
+    WHERE HCPCS_Code IS NOT NULL
+        AND month_year IS NOT NULL
+        AND month_year != 'month_year'
+        AND month_year LIKE '%.%'
+        AND LENGTH(month_year) >= 8;
+
     -- Log start
     INSERT INTO bi_refresh_log (refresh_type, status, message, started_at)
     VALUES ('manual', 'STARTED', CONCAT('Processing QUARTERLY data from ',
         DATE_FORMAT(v_min_date, '%Y-%m-%d'), ' to ', DATE_FORMAT(v_max_date, '%Y-%m-%d'),
-        ' (Expected: ~41 quarters)'), v_start_time);
+        ' (Total: ', v_total_quarters, ' quarters)'), v_start_time);
 
     OPEN date_cursor;
 
@@ -85,7 +100,7 @@ BEGIN
 
         -- Log start of quarter
         INSERT INTO bi_refresh_log (refresh_type, status, message, started_at)
-        VALUES ('manual', 'IN_PROGRESS', CONCAT('Processing quarter ', v_quarter_count, ' of ~41 ',
+        VALUES ('manual', 'IN_PROGRESS', CONCAT('Processing quarter ', v_quarter_count, ' of ', v_total_quarters, ' ',
             '(Q', QUARTER(v_current_date), '-', YEAR(v_current_date), ') - ',
             DATE_FORMAT(v_current_date, '%Y-%m-%d')), NOW());
 
@@ -101,7 +116,7 @@ BEGIN
 
         -- Log completion of this quarter with COMPLETED_QUARTER status
         INSERT INTO bi_refresh_log (refresh_type, status, message, started_at, completed_at)
-        VALUES ('manual', 'COMPLETED_QUARTER', CONCAT('✓ Q', v_quarter_count, ' of ~41 ',
+        VALUES ('manual', 'COMPLETED_QUARTER', CONCAT('✓ Q', v_quarter_count, ' of ', v_total_quarters, ' ',
             '(Q', QUARTER(v_current_date), '-', YEAR(v_current_date), ') - ',
             'Pricing: ', IFNULL(@rows_pricing, 0), ', Historical: ', IFNULL(@rows_historical, 0)),
             v_start_time, NOW());
