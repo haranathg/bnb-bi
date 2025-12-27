@@ -10,7 +10,10 @@
 - **[PHPMYADMIN_INSTRUCTIONS.md](PHPMYADMIN_INSTRUCTIONS.md)** - Step-by-step setup guide for phpMyAdmin
 - **[README.md](README.md)** - This file
 
-### 3. Other Files
+### 3. Automation
+- **[refresh_bi_tables.sh](refresh_bi_tables.sh)** - Cron job script for daily refresh
+
+### 4. Other Files
 - **[bi_historical_pricing_mapping.md](bi_historical_pricing_mapping.md)** - Data mapping documentation
 - **[ToDo-migrate to prod.md](ToDo-migrate to prod.md)** - Production migration notes
 - **[backup_old_versions/](backup_old_versions/)** - Old versions and unused files
